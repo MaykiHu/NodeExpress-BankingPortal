@@ -6,6 +6,7 @@ const app = express();
 app.set('views', path.join(__dirname, '/views'));
 app.set('view engine', 'ejs');
 app.use(express.static(path.join(__dirname, '/public/')));
+app.use(express.urlencoded({ extended: true }));
 
 const accountData = fs.readFileSync('src/json/accounts.json', 'utf8');
 const accounts = JSON.parse(accountData);
@@ -28,7 +29,7 @@ app.get('/savings', (req, res) => {
     {
       account: accounts.savings,
     }
-  )
+  );
 });
 
 app.get('/checking', (req, res) => {
@@ -37,7 +38,7 @@ app.get('/checking', (req, res) => {
     {
       account: accounts.checking,
     }
-  )
+  );
 });
 
 app.get('/credit', (req, res) => {
@@ -46,16 +47,52 @@ app.get('/credit', (req, res) => {
     {
       account: accounts.credit,
     }
-  )
+  );
 });
 
 app.get('/profile', (req, res) => {
   res.render(
     'profile', 
     {
-      user: users[0]
+      user: users[0],
     }
-    )
+  );
+});
+
+app.get('/transfer', (req, res) => {
+  res.render('transfer')
+});
+app.post('/transfer', (req, res) => {
+  const { from, to, amount } = req.body; // destructure to get from, to, amount
+  accounts[from].balance -= amount;  // update balance "from" acc
+  accounts[to].balance += parseInt(amount);  // update balance of "to" acc
+  const accountsJSON = JSON.stringify(accounts);
+  fs.writeFileSync(path.join(__dirname, 'json/accounts.json'), 
+    accountsJSON, 'utf8');
+  res.render('transfer', { message: "Transfer Completed" });
+});
+
+app.get('/payment', (req, res) => {
+  res.render(
+    'payment', 
+    {
+      account: accounts.credit,
+    }
+  );
+});
+app.post('/payment', (req, res) => {
+  const { amount } = req.body;
+  accounts.credit.balance -= amount;
+  accounts.credit.available += parseInt(amount);
+  const accountsJSON = JSON.stringify(accounts);
+  fs.writeFileSync(path.join(__dirname, 'json/accounts.json'), 
+    accountsJSON, 'utf8');
+  res.render('payment', 
+    { 
+      message: "Payment Successful",
+      account: accounts.credit 
+    }
+  );
 });
 
 app.listen(3000, () => {
